@@ -29,7 +29,7 @@ jobs:
 
     steps:
       - name: Trigger Test on TestIO
-        uses: Staffbase/testio-trigger-test-github-action@v1.0.3
+        uses: Staffbase/testio-trigger-test-github-action@v1.3.0
         with:
           testio-slug: your-testio-slug
           testio-product-id: your-testio-product-id
@@ -53,10 +53,7 @@ You can also use a reusable workflow to enable this action in your repository de
 ## Use the Action to trigger a new test on TestIO from a PR
 
 We highly recommend creating a separate product in your TestIO account dedicated to test creation from a PR.
-This avoids interference with the tests in your main product(s). 
-You can easily achieve that via the menu as can be seen in the following screenshot.
-
-<img src="docs/assets/images/testio-create-product.png" alt="create new TestIO product" />
+This avoids interference with the tests in your main product(s) (see [FAQs](#faqs)). 
 
 ### For the Default Devices in Your Account
 
@@ -75,33 +72,48 @@ To trigger a test on TestIO for your default devices the following steps are req
 5. This triggers the test on TestIO and successful creation is commented back as a new comment.
    <img src="docs/assets/images/test-success.png" alt="success test comment" />
 
-### For Android Devices
+### For Android or iOS Devices
 
-To trigger a test on TestIO explicitly for Android devices the same steps as described for [Default Devices](#for-the-default-devices-in-your-account)
+To trigger a test on TestIO explicitly for Android or iOS devices the same steps as described for [Default Devices](#for-the-default-devices-in-your-account)
 need to be followed but with the following small adjustment:
 
-- The comment to be added to trigger the whole process from step 1 needs to be `@bot-testio exploratory-test create android`.
+- The comment to be added to trigger the whole process from step 1 needs to be `@bot-testio exploratory-test create <OS>` where `<OS>` is one of `android` or `ios`.
+- If you want to trigger a test for Android Tablets you need to write `@bot-testio exploratory-test create android tablets` (for iOS respectively).
 - In addition to the other requested information you now need to provide the following:
   ```json
-  "native": {
-    "android": {
-      "min": 8,
-      "max": 10
-    }
+  "device": {
+    "os": "android",
+    "category": "smartphones",
+    "min": "8.0",
+    "max": "10"
   }
   ```
-- You need to provide minimal and maximum Android version of devices the testers should use.
-- Only `integer` values are allowed.
+- You need to provide minimal and maximum OS version of devices the testers should use.
 - `min` is mandatory and `max` optional.
 - If `max` is not provided TestIO automatically sets it to `latest`.
+
+## Run Tests
+- run `nvm use` which uses the node version from `.nvmrc` file
+- run `npm install` to install dependencies
+- run `npm run test` to run the unit test suite
 
 ## FAQs
 
 <details>
 <summary>How/Where to configure the default devices on TestIO?</summary>
-Find the Default Devices in the menu as can be seen in the following screenshot.
+   
+   Find the Default Devices in the menu as can be seen in the following screenshot.
+   
+   <img src="docs/assets/images/testio-manage-default-devices.png" alt="manage default TestIO devices" />
 
-<img src="docs/assets/images/testio-manage-default-devices.png" alt="manage default TestIO devices" />
+</details>
+
+<details>
+<summary>How to create a new product dedicated for testing PRs on TestIO?</summary>
+
+   You can easily achieve that via the menu as can be seen in the following screenshot.
+   
+   <img src="docs/assets/images/testio-create-product.png" alt="create new TestIO product" />
 
 </details>
 

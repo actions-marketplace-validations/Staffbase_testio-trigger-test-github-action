@@ -43,70 +43,22 @@ export class Util {
         return {valid, validation};
     }
 
-    public static convertPrepareObjectToTestIOPayload(prepareObject: any, repo: string, owner: string, pr: number, prTitle: string): any {
-        const titleBase = `[${owner}/${repo}/${pr}]${prTitle}`;
-        const testioPayload = {
-            exploratory_test: {
-                test_title: titleBase,
-                test_environment: {
-                    // 80 is restriction from TestIO
-                    title: Util.truncateString(titleBase, 80, "[test environment]", true),
-                    url: prepareObject.test_environment.url,
-                    access: prepareObject.test_environment.access,
-                },
-                features: [
-                    {
-                        id: 0,
-                        title: prepareObject.feature.title,
-                        description: prepareObject.feature.description,
-                        howtofind: prepareObject.feature.howtofind,
-                        user_stories: prepareObject.feature.user_stories
-                    }
-                ],
-                instructions: (prepareObject.additionalInstructions ? prepareObject.additionalInstructions : null),
-                duration: "2",
-                testing_type: "rapid"
-            }
-        };
-
-        if (prepareObject.native?.android) {
-            testioPayload.exploratory_test = {
-                ...testioPayload.exploratory_test, ...{
-                    requirements: [
-                        {
-                            category: {
-                                id: 2,
-                                name: "Smartphones"
-                            },
-                            operating_system: {
-                                id: 1,
-                                name: "Android"
-                            },
-                            min_operating_system_version: {
-                                id: Util.getTestIoVersionIdFromVersionNumber("android", prepareObject.native.android.min),
-                                name: "" + prepareObject.native.android.min
-                            },
-                            max_operating_system_version: (prepareObject.native.android.max ? {
-                                id: Util.getTestIoVersionIdFromVersionNumber("android", prepareObject.native.android.max),
-                                name: "" + prepareObject.native.android.max
-                            } : null)
-                        }
-                    ]
-                }
-            }
-        }
-
-        return testioPayload;
-    }
-
-    public static async request(requestMethod: string, endpoint: string, authToken: string, bodyObject?: any): Promise<any> {
+    public static async request(requestMethod: string, endpoint: string, authToken?: string, bodyObject?: any): Promise<any> {
         const authTokenString = `Token ${authToken}`;
         let request = {
             method: requestMethod,
             headers: {
-                'Authorization': `${authTokenString}`
             }
         };
+
+        if (authToken) {
+            request.headers = {
+                ...request.headers, ...{
+                    'Authorization': `${authTokenString}`
+                }
+            };
+        }
+
         if (bodyObject) {
             request.headers = {
                 ...request.headers, ...{
@@ -126,7 +78,7 @@ export class Util {
                 console.log("Successfully received response from request");
                 return result;
             }
-            return Promise.reject("Deserializing the data from the response wasn't successful");
+            return Promise.reject(new Error("Deserializing the data from the response wasn't successful"));
         } else {
             const error = new Error((await response.json()).error);
             return Promise.reject(error)
@@ -150,7 +102,7 @@ export class Util {
     }
 
     static getUrlFromComment(comment: string): string | undefined {
-        const urlRegex = /.*```json\s.*\s```\s.*\[.+]\(([^\)]+)\)*/sm;
+        const urlRegex = /.*```json\s.*\s```\s.*\[.+]\(([^)]+)\)*/sm;
         const matches = urlRegex.exec(comment);
         if (!matches) {
             console.log("Couldn't find a URL in the comment");
@@ -167,41 +119,10 @@ export class Util {
         return string.slice(0, maxLength - suffix.length) + suffix;
     }
 
-    public static retrievePrepareObjectFromComment(comment: string): any | undefined {
+    public static retrievePrepareObjectFromComment(comment: string): any {
         const jsonRegex = /.*```json\s(.+)\s```.*/sm;       // everything between ```json and ``` so that we can parse it
         let preparation: any;
         preparation = Util.getJsonObjectFromComment(jsonRegex, comment, 1);
         return preparation;
-    }
-
-    static getTestIoVersionIdFromVersionNumber(operatingSystem: string, versionNumber: number): number | undefined {
-        const operatingSystemToVersionNumberToVersionIDs = new Map<string, Map<number, number>>([
-            ["android", new Map<number, number>([
-                [8, 266],
-                [9, 319],
-                [10, 380],
-                [11, 462],
-                [12, 572],
-                [13, 661],
-                [14, 753],
-            ])]
-        ]);
-
-        const versionNumberToID: Map<number, number> | undefined = operatingSystemToVersionNumberToVersionIDs.get(operatingSystem);
-        if (!versionNumberToID) {
-            console.log(`Operating System not found: ${operatingSystem}`);
-            return undefined;
-        }
-
-        const minVersion: number = Array.from(versionNumberToID.keys()).reduce((a, b) => a < b ? a : b);
-        const maxVersion: number = Array.from(versionNumberToID.keys()).reduce((a, b) => a > b ? a : b);
-        if (versionNumber < minVersion) {
-            versionNumber = minVersion;
-        }
-        if (versionNumber > maxVersion) {
-            versionNumber = maxVersion;
-        }
-
-        return versionNumberToID.get(versionNumber);
     }
 }
